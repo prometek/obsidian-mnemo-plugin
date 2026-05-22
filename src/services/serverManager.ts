@@ -36,7 +36,7 @@ export class ServerManager extends EventEmitter {
   private process: ChildProcess | null = null;
   private state: ServerState = 'stopped';
   private readonly logLines: string[] = [];
-  private killOnExit: (() => void) | null = null;
+  private ownedPid: number | null = null;
 
   on(event: 'crashed', listener: (exitCode: number | null) => void): this;
   on(event: 'state', listener: (state: ServerState) => void): this;
@@ -112,25 +112,19 @@ export class ServerManager extends EventEmitter {
       }
     });
 
+    this.ownedPid = this.process.pid ?? null;
+
     this.process.on('error', (err) => {
+      this.ownedPid = null;
       this.process = null;
       this.setState('stopped');
       this.log(`spawn error: ${String(err)}`);
       this.emit('crashed', null);
     });
 
-    const spawnedProc = this.process;
-    this.killOnExit = (): void => {
-      spawnedProc.kill('SIGKILL');
-    };
-    process.once('exit', this.killOnExit);
-
     this.process.on('exit', (code) => {
-      if (this.killOnExit) {
-        process.removeListener('exit', this.killOnExit);
-        this.killOnExit = null;
-      }
       const wasRunning = this.process !== null;
+      this.ownedPid = null;
       this.process = null;
       this.setState('stopped');
       if (wasRunning && code !== 0 && code !== null) {
@@ -139,6 +133,16 @@ export class ServerManager extends EventEmitter {
     });
 
     this.setState('starting');
+  }
+
+  killSync(): void {
+    if (this.ownedPid !== null) {
+      try {
+        process.kill(this.ownedPid, 'SIGTERM');
+      } catch {
+        // already dead
+      }
+    }
   }
 
   async stop(): Promise<void> {

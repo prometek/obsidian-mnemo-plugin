@@ -47,7 +47,7 @@ export default class MnemoPlugin extends Plugin {
   }
 
   onunload(): void {
-    void this.serverManager.stop();
+    this.serverManager.killSync();
   }
 
   async startServer(): Promise<void> {
