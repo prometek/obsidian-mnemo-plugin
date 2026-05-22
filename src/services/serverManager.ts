@@ -13,7 +13,7 @@ export interface ServerStatus {
   installing?: boolean;
 }
 
-export type ServerState = 'stopped' | 'installing' | 'running';
+export type ServerState = 'stopped' | 'installing' | 'starting' | 'syncing' | 'running';
 
 interface StartOptions {
   vaultPath: string;
@@ -58,6 +58,10 @@ export class ServerManager extends EventEmitter {
     return this.logLines;
   }
 
+  getState(): ServerState {
+    return this.state;
+  }
+
   private log(line: string): void {
     const ts = new Date().toISOString().slice(11, 19);
     const entry = `${ts}  ${line}`;
@@ -97,7 +101,13 @@ export class ServerManager extends EventEmitter {
     });
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
-      this.log(chunk.toString().trim());
+      const line = chunk.toString().trim();
+      this.log(line);
+      if (line.includes('Starting initial vault sync')) {
+        this.setState('syncing');
+      } else if (line.includes('Vault sync done')) {
+        this.setState('running');
+      }
     });
 
     this.process.on('error', (err) => {
@@ -116,7 +126,7 @@ export class ServerManager extends EventEmitter {
       }
     });
 
-    this.setState('running');
+    this.setState('starting');
   }
 
   async stop(): Promise<void> {
@@ -145,7 +155,7 @@ export class ServerManager extends EventEmitter {
 
   getStatus(): ServerStatus {
     if (this.state === 'installing') return { running: false, installing: true };
-    if (!this.isRunning()) return { running: false };
+    if (this.state === 'stopped') return { running: false };
     return { running: true, pid: this.process?.pid };
   }
 

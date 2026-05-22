@@ -19,14 +19,16 @@ export class MnemoSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Obsidian Mnemo' });
+    containerEl.createEl('h2', { text: 'Mnemo' });
 
     this.renderStatusSection(containerEl);
     if (this.settingsDirty && this.plugin.serverManager.isRunning()) {
       this.renderDirtyBanner(containerEl);
     }
     this.renderFields(containerEl);
-    this.renderLogSection(containerEl);
+    if (this.plugin.settings.showLogs) {
+      this.renderLogSection(containerEl);
+    }
   }
 
   refreshStatus(): void {
@@ -34,14 +36,21 @@ export class MnemoSettingTab extends PluginSettingTab {
   }
 
   private renderStatusSection(containerEl: HTMLElement): void {
+    const state = this.plugin.serverManager.getState();
     const status = this.plugin.serverManager.getStatus();
 
     let statusText: string;
     let statusColor: string;
-    if (status.installing) {
-      statusText = 'Installing obsidian-mnemo… (this may take a minute)';
+    if (state === 'installing') {
+      statusText = 'Installing… (this may take a minute)';
       statusColor = 'var(--color-yellow)';
-    } else if (status.running) {
+    } else if (state === 'starting') {
+      statusText = 'Starting…';
+      statusColor = 'var(--color-yellow)';
+    } else if (state === 'syncing') {
+      statusText = `Syncing vault… (PID ${String(status.pid ?? '?')})`;
+      statusColor = 'var(--color-yellow)';
+    } else if (state === 'running') {
       statusText = `Running (PID ${String(status.pid ?? '?')})`;
       statusColor = 'var(--color-green)';
     } else {
@@ -53,12 +62,12 @@ export class MnemoSettingTab extends PluginSettingTab {
 
     setting.descEl.style.color = statusColor;
 
-    if (this.isTransitioning || status.installing) {
+    if (this.isTransitioning || state === 'installing' || state === 'starting') {
       setting.addButton((btn) => btn.setButtonText('…').setDisabled(true));
       return;
     }
 
-    if (!status.running) {
+    if (state === 'stopped') {
       setting.addButton((btn) =>
         btn
           .setButtonText('Start')
@@ -149,6 +158,17 @@ export class MnemoSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }),
       );
+
+    new Setting(containerEl)
+      .setName('Show logs')
+      .setDesc('Display server logs in the settings tab.')
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.showLogs).onChange(async (value) => {
+          this.plugin.settings.showLogs = value;
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+      );
   }
 
   private renderLogSection(containerEl: HTMLElement): void {
@@ -167,7 +187,7 @@ export class MnemoSettingTab extends PluginSettingTab {
   }
 
   appendLog(line: string): void {
-    if (!this.logEl) return;
+    if (!this.logEl || !this.plugin.settings.showLogs) return;
     const current = this.logEl.getText();
     this.logEl.setText(current ? `${current}\n${line}` : line);
     this.logEl.scrollTop = this.logEl.scrollHeight;

@@ -5,6 +5,7 @@ export interface MnemoSettings {
   chromaPath: string;
   logLevel: LogLevel;
   autoStart: boolean;
+  showLogs: boolean;
 }
 
 export const DEFAULT_SETTINGS: MnemoSettings = {
@@ -12,4 +13,5 @@ export const DEFAULT_SETTINGS: MnemoSettings = {
   chromaPath: '',
   logLevel: 'INFO',
   autoStart: true,
+  showLogs: true,
 };
