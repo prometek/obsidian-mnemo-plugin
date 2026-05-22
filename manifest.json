@@ -1,6 +1,6 @@
 {
   "id": "obsidian-mnemo",
-  "name": "Obsidian Mnemo",
+  "name": "Mnemo",
   "version": "0.1.0",
   "minAppVersion": "1.4.0",
   "description": "Starts and manages the obsidian-mnemo MCP server for AI-powered vault access.",
