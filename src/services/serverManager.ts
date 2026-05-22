@@ -36,6 +36,7 @@ export class ServerManager extends EventEmitter {
   private process: ChildProcess | null = null;
   private state: ServerState = 'stopped';
   private readonly logLines: string[] = [];
+  private killOnExit: (() => void) | null = null;
 
   on(event: 'crashed', listener: (exitCode: number | null) => void): this;
   on(event: 'state', listener: (state: ServerState) => void): this;
@@ -118,7 +119,16 @@ export class ServerManager extends EventEmitter {
       this.emit('crashed', null);
     });
 
+    this.killOnExit = (): void => {
+      this.process?.kill('SIGKILL');
+    };
+    process.once('exit', this.killOnExit);
+
     this.process.on('exit', (code) => {
+      if (this.killOnExit) {
+        process.removeListener('exit', this.killOnExit);
+        this.killOnExit = null;
+      }
       const wasRunning = this.process !== null;
       this.process = null;
       this.setState('stopped');
@@ -133,6 +143,11 @@ export class ServerManager extends EventEmitter {
   async stop(): Promise<void> {
     const proc = this.process;
     if (!proc) return;
+
+    if (this.killOnExit) {
+      process.removeListener('exit', this.killOnExit);
+      this.killOnExit = null;
+    }
 
     return new Promise((resolve) => {
       const killTimer = setTimeout(() => {
