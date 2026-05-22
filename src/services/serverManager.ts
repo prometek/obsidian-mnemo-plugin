@@ -76,6 +76,7 @@ export class ServerManager extends EventEmitter {
     const inUse = await isPortInUse(opts.port);
     if (inUse) {
       this.log(`port ${String(opts.port)} already in use — reusing existing instance`);
+      this.setState('running');
       return;
     }
 
