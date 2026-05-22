@@ -1,18 +1,50 @@
-import { Plugin } from 'obsidian';
+import { FileSystemAdapter, Notice, Plugin } from 'obsidian';
 
+import { MnemoClient } from './services/mnemoClient';
+import { ServerManager } from './services/serverManager';
 import { DEFAULT_SETTINGS, type MnemoSettings } from './settings';
+import { MnemoSettingTab } from './ui/settingTab';
 
 export default class MnemoPlugin extends Plugin {
   settings!: MnemoSettings;
+  serverManager!: ServerManager;
+  client!: MnemoClient;
+
+  private settingTab!: MnemoSettingTab;
 
   async onload(): Promise<void> {
     await this.loadSettings();
-    // TODO(server-manager): start server if settings.autoStart
-    // TODO(settings-tab): this.addSettingTab(new MnemoSettingTab(this.app, this))
+
+    this.serverManager = new ServerManager();
+    this.client = new MnemoClient(this.settings.port);
+
+    this.serverManager.on('crashed', (exitCode) => {
+      new Notice(
+        `obsidian-mnemo server crashed (exit ${String(exitCode ?? 'null')}). Check the console for details.`,
+      );
+      this.settingTab.refreshStatus();
+    });
+
+    this.settingTab = new MnemoSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
+
+    if (this.settings.autoStart) {
+      await this.startServer();
+    }
   }
 
   onunload(): void {
-    // TODO(server-manager): serverManager.stop()
+    void this.serverManager.stop();
+  }
+
+  async startServer(): Promise<void> {
+    const vaultPath = this.getVaultPath();
+    await this.serverManager.start({
+      vaultPath,
+      port: this.settings.port,
+      chromaPath: this.settings.chromaPath,
+      logLevel: this.settings.logLevel,
+    });
   }
 
   async loadSettings(): Promise<void> {
@@ -21,5 +53,13 @@ export default class MnemoPlugin extends Plugin {
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  private getVaultPath(): string {
+    const adapter = this.app.vault.adapter;
+    if (adapter instanceof FileSystemAdapter) {
+      return adapter.getBasePath();
+    }
+    return '';
   }
 }
