@@ -33,14 +33,25 @@ export class MnemoSettingTab extends PluginSettingTab {
 
   private renderStatusSection(containerEl: HTMLElement): void {
     const status = this.plugin.serverManager.getStatus();
-    const statusText = status.running ? `Running (PID ${String(status.pid ?? '?')})` : 'Stopped';
-    const statusColor = status.running ? 'var(--color-green)' : 'var(--color-red)';
+
+    let statusText: string;
+    let statusColor: string;
+    if (status.installing) {
+      statusText = 'Installing obsidian-mnemo… (this may take a minute)';
+      statusColor = 'var(--color-yellow)';
+    } else if (status.running) {
+      statusText = `Running (PID ${String(status.pid ?? '?')})`;
+      statusColor = 'var(--color-green)';
+    } else {
+      statusText = 'Stopped';
+      statusColor = 'var(--color-red)';
+    }
 
     const setting = new Setting(containerEl).setName('Server status').setDesc(statusText);
 
     setting.descEl.style.color = statusColor;
 
-    if (this.isTransitioning) {
+    if (this.isTransitioning || status.installing) {
       setting.addButton((btn) => btn.setButtonText('…').setDisabled(true));
       return;
     }
