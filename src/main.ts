@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { Plugin } from 'obsidian';
 
 export default class MnemoPlugin extends Plugin {
   async onload(): Promise<void> {
