@@ -171,20 +171,33 @@ function installObsidianMnemo(): Promise<void> {
   const cmd = uv ?? (pip as string);
   const args = uv ? ['tool', 'install', 'obsidian-mnemo'] : ['install', '--user', 'obsidian-mnemo'];
 
+  console.log(`[obsidian-mnemo] installing via: ${cmd} ${args.join(' ')}`);
+
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, PATH: augmentedPath() },
     });
 
+    proc.stdout.on('data', (chunk: Buffer) => {
+      console.log(`[obsidian-mnemo install] ${chunk.toString().trim()}`);
+    });
+    proc.stderr.on('data', (chunk: Buffer) => {
+      console.log(`[obsidian-mnemo install] ${chunk.toString().trim()}`);
+    });
+
     proc.on('exit', (code) => {
+      console.log(`[obsidian-mnemo] install exited with code ${String(code)}`);
       if (code === 0) {
         resolve();
       } else {
         reject(new Error(`Installation failed (exit ${String(code)})`));
       }
     });
-    proc.on('error', reject);
+    proc.on('error', (err) => {
+      console.error('[obsidian-mnemo] install spawn error:', err);
+      reject(err);
+    });
   });
 }
 

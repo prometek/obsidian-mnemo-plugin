@@ -33,7 +33,12 @@ export default class MnemoPlugin extends Plugin {
     this.addSettingTab(this.settingTab);
 
     if (this.settings.autoStart) {
-      await this.startServer();
+      try {
+        await this.startServer();
+      } catch (err) {
+        console.error('[obsidian-mnemo] auto-start failed:', err);
+        new Notice(`obsidian-mnemo: ${String(err)}`, 10000);
+      }
     }
   }
 
