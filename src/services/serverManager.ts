@@ -119,8 +119,9 @@ export class ServerManager extends EventEmitter {
       this.emit('crashed', null);
     });
 
+    const spawnedProc = this.process;
     this.killOnExit = (): void => {
-      this.process?.kill('SIGKILL');
+      spawnedProc.kill('SIGKILL');
     };
     process.once('exit', this.killOnExit);
 
@@ -143,11 +144,6 @@ export class ServerManager extends EventEmitter {
   async stop(): Promise<void> {
     const proc = this.process;
     if (!proc) return;
-
-    if (this.killOnExit) {
-      process.removeListener('exit', this.killOnExit);
-      this.killOnExit = null;
-    }
 
     return new Promise((resolve) => {
       const killTimer = setTimeout(() => {
