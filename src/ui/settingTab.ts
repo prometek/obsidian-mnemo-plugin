@@ -6,6 +6,7 @@ import { type LogLevel } from '../settings';
 export class MnemoSettingTab extends PluginSettingTab {
   private settingsDirty = false;
   private isTransitioning = false;
+  private logEl: HTMLElement | null = null;
 
   constructor(
     app: App,
@@ -25,6 +26,7 @@ export class MnemoSettingTab extends PluginSettingTab {
       this.renderDirtyBanner(containerEl);
     }
     this.renderFields(containerEl);
+    this.renderLogSection(containerEl);
   }
 
   refreshStatus(): void {
@@ -147,6 +149,28 @@ export class MnemoSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }),
       );
+  }
+
+  private renderLogSection(containerEl: HTMLElement): void {
+    containerEl.createEl('h3', { text: 'Logs' });
+
+    const pre = containerEl.createEl('pre');
+    pre.style.cssText =
+      'max-height:200px;overflow-y:auto;background:var(--background-secondary);' +
+      'padding:8px;border-radius:4px;font-size:0.8em;white-space:pre-wrap;word-break:break-all;';
+
+    const logs = this.plugin.serverManager.getLogs();
+    pre.setText(logs.join('\n'));
+    pre.scrollTop = pre.scrollHeight;
+
+    this.logEl = pre;
+  }
+
+  appendLog(line: string): void {
+    if (!this.logEl) return;
+    const current = this.logEl.getText();
+    this.logEl.setText(current ? `${current}\n${line}` : line);
+    this.logEl.scrollTop = this.logEl.scrollHeight;
   }
 
   private markDirty(): void {

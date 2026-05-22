@@ -30,12 +30,16 @@ const EXTRA_DIRS = [
   '/opt/homebrew/sbin',
 ];
 
+const MAX_LOG_LINES = 100;
+
 export class ServerManager extends EventEmitter {
   private process: ChildProcess | null = null;
   private state: ServerState = 'stopped';
+  private readonly logLines: string[] = [];
 
   on(event: 'crashed', listener: (exitCode: number | null) => void): this;
   on(event: 'state', listener: (state: ServerState) => void): this;
+  on(event: 'log', listener: (line: string) => void): this;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   on(event: string | symbol, listener: (...args: any[]) => void): this {
     return super.on(event, listener);
@@ -43,10 +47,23 @@ export class ServerManager extends EventEmitter {
 
   emit(event: 'crashed', exitCode: number | null): boolean;
   emit(event: 'state', state: ServerState): boolean;
+  emit(event: 'log', line: string): boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string | symbol, ...args: any[]): boolean {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return super.emit(event, ...args);
+  }
+
+  getLogs(): readonly string[] {
+    return this.logLines;
+  }
+
+  private log(line: string): void {
+    const ts = new Date().toISOString().slice(11, 19);
+    const entry = `${ts}  ${line}`;
+    this.logLines.push(entry);
+    if (this.logLines.length > MAX_LOG_LINES) this.logLines.shift();
+    this.emit('log', entry);
   }
 
   async start(opts: StartOptions): Promise<void> {
@@ -54,9 +71,7 @@ export class ServerManager extends EventEmitter {
 
     const inUse = await isPortInUse(opts.port);
     if (inUse) {
-      console.info(
-        `obsidian-mnemo: port ${String(opts.port)} already in use — reusing existing instance`,
-      );
+      this.log(`port ${String(opts.port)} already in use — reusing existing instance`);
       return;
     }
 
@@ -64,7 +79,7 @@ export class ServerManager extends EventEmitter {
 
     if (!binaryPath) {
       this.setState('installing');
-      await installObsidianMnemo();
+      await installObsidianMnemo(this.log.bind(this));
       binaryPath = findExecutable('obsidian-mnemo');
       if (!binaryPath) {
         this.setState('stopped');
@@ -82,14 +97,14 @@ export class ServerManager extends EventEmitter {
     });
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
-      console.debug(`[obsidian-mnemo] ${chunk.toString().trim()}`);
+      this.log(chunk.toString().trim());
     });
 
     this.process.on('error', (err) => {
       this.process = null;
       this.setState('stopped');
+      this.log(`spawn error: ${String(err)}`);
       this.emit('crashed', null);
-      console.error('[obsidian-mnemo] spawn error:', err);
     });
 
     this.process.on('exit', (code) => {
@@ -160,7 +175,7 @@ function augmentedPath(): string {
   return extra ? `${extra}:${existing}` : existing;
 }
 
-function installObsidianMnemo(): Promise<void> {
+function installObsidianMnemo(log: (line: string) => void): Promise<void> {
   const uv = findExecutable('uv');
   const pip = findExecutable('pip3') ?? findExecutable('pip');
 
@@ -171,7 +186,7 @@ function installObsidianMnemo(): Promise<void> {
   const cmd = uv ?? (pip as string);
   const args = uv ? ['tool', 'install', 'obsidian-mnemo'] : ['install', '--user', 'obsidian-mnemo'];
 
-  console.log(`[obsidian-mnemo] installing via: ${cmd} ${args.join(' ')}`);
+  log(`installing via: ${cmd} ${args.join(' ')}`);
 
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, args, {
@@ -180,14 +195,14 @@ function installObsidianMnemo(): Promise<void> {
     });
 
     proc.stdout.on('data', (chunk: Buffer) => {
-      console.log(`[obsidian-mnemo install] ${chunk.toString().trim()}`);
+      log(chunk.toString().trim());
     });
     proc.stderr.on('data', (chunk: Buffer) => {
-      console.log(`[obsidian-mnemo install] ${chunk.toString().trim()}`);
+      log(chunk.toString().trim());
     });
 
     proc.on('exit', (code) => {
-      console.log(`[obsidian-mnemo] install exited with code ${String(code)}`);
+      log(`install exited with code ${String(code)}`);
       if (code === 0) {
         resolve();
       } else {
@@ -195,7 +210,7 @@ function installObsidianMnemo(): Promise<void> {
       }
     });
     proc.on('error', (err) => {
-      console.error('[obsidian-mnemo] install spawn error:', err);
+      log(`install spawn error: ${String(err)}`);
       reject(err);
     });
   });

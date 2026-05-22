@@ -29,6 +29,10 @@ export default class MnemoPlugin extends Plugin {
       this.settingTab.refreshStatus();
     });
 
+    this.serverManager.on('log', (line) => {
+      this.settingTab.appendLog(line);
+    });
+
     this.settingTab = new MnemoSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
 
