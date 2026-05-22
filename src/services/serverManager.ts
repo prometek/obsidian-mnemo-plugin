@@ -185,7 +185,7 @@ function installObsidianMnemo(log: (line: string) => void): Promise<void> {
 
   const cmd = uv ?? (pip as string);
   const args = uv
-    ? ['tool', 'install', '--python', '3.11', 'obsidian-mnemo']
+    ? ['tool', 'install', '--python', '3.14', 'obsidian-mnemo']
     : ['install', '--user', 'obsidian-mnemo'];
 
   log(`installing via: ${cmd} ${args.join(' ')}`);
