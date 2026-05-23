@@ -12,15 +12,12 @@ Mnemo connects your Obsidian vault to AI tools (Claude Desktop, Cursor, etc.) vi
 ## Requirements
 
 - **Desktop only** (macOS, Linux, Windows)
-- [`uv`](https://docs.astral.sh/uv/) (recommended) or `pip` installed — used to auto-install `obsidian-mnemo`
-- Python 3.11 or later (managed automatically by `uv`)
+- [`uv`](https://docs.astral.sh/uv/) installed — the plugin uses it to install `obsidian-mnemo` automatically, Python included
 
-If neither `uv` nor `pip` is found, install `obsidian-mnemo` manually:
+If `uv` is not installed, the plugin falls back to `pip` (requires Python 3.11+). If neither is available, install manually:
 
 ```bash
 uv tool install obsidian-mnemo
-# or
-pip install --user obsidian-mnemo
 ```
 
 ## Installation
