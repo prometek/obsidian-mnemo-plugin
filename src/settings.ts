@@ -6,6 +6,7 @@ export interface MnemoSettings {
   logLevel: LogLevel;
   autoStart: boolean;
   showLogs: boolean;
+  showNotices: boolean;
 }
 
 export const DEFAULT_SETTINGS: MnemoSettings = {
@@ -14,4 +15,5 @@ export const DEFAULT_SETTINGS: MnemoSettings = {
   logLevel: 'INFO',
   autoStart: true,
   showLogs: true,
+  showNotices: true,
 };

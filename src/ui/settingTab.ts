@@ -169,6 +169,16 @@ export class MnemoSettingTab extends PluginSettingTab {
           this.display();
         }),
       );
+
+    new Setting(containerEl)
+      .setName('Show notices')
+      .setDesc('Show Obsidian notifications for server events (start, stop, sync).')
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.showNotices).onChange(async (value: boolean) => {
+          this.plugin.settings.showNotices = value;
+          await this.plugin.saveSettings();
+        }),
+      );
   }
 
   private renderLogSection(containerEl: HTMLElement): void {

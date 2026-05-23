@@ -41,6 +41,7 @@ export class ServerManager extends EventEmitter {
   on(event: 'crashed', listener: (exitCode: number | null) => void): this;
   on(event: 'state', listener: (state: ServerState) => void): this;
   on(event: 'log', listener: (line: string) => void): this;
+  on(event: 'synced', listener: (indexed: number, skipped: number) => void): this;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   on(event: string | symbol, listener: (...args: any[]) => void): this {
     return super.on(event, listener);
@@ -49,6 +50,7 @@ export class ServerManager extends EventEmitter {
   emit(event: 'crashed', exitCode: number | null): boolean;
   emit(event: 'state', state: ServerState): boolean;
   emit(event: 'log', line: string): boolean;
+  emit(event: 'synced', indexed: number, skipped: number): boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string | symbol, ...args: any[]): boolean {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -109,6 +111,10 @@ export class ServerManager extends EventEmitter {
         this.setState('syncing');
       } else if (line.includes('Vault sync done')) {
         this.setState('running');
+        const match = /Vault sync done: (\d+) indexed, (\d+) skipped/.exec(line);
+        if (match) {
+          this.emit('synced', parseInt(match[1], 10), parseInt(match[2], 10));
+        }
       }
     });
 

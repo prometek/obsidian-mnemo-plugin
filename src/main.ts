@@ -20,13 +20,21 @@ export default class MnemoPlugin extends Plugin {
 
     this.serverManager.on('crashed', (exitCode) => {
       new Notice(
-        `obsidian-mnemo server crashed (exit ${String(exitCode ?? 'null')}). Check the console for details.`,
+        `Mnemo: server crashed (exit ${String(exitCode ?? 'null')}). Check logs for details.`,
       );
       this.settingTab.refreshStatus();
     });
 
-    this.serverManager.on('state', () => {
+    this.serverManager.on('state', (state) => {
       this.settingTab.refreshStatus();
+      if (!this.settings.showNotices) return;
+      if (state === 'starting') new Notice('Mnemo: server starting…');
+      if (state === 'stopped') new Notice('Mnemo: server stopped.');
+    });
+
+    this.serverManager.on('synced', (indexed, skipped) => {
+      if (!this.settings.showNotices) return;
+      new Notice(`Mnemo: indexed ${String(indexed)} notes (${String(skipped)} skipped).`);
     });
 
     this.serverManager.on('log', (line) => {
