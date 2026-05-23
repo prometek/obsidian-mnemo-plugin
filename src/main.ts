@@ -36,6 +36,10 @@ export default class MnemoPlugin extends Plugin {
     this.settingTab = new MnemoSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
 
+    this.registerDomEvent(window, 'beforeunload', () => {
+      this.serverManager.killSync();
+    });
+
     if (this.settings.autoStart) {
       try {
         await this.startServer();

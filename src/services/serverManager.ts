@@ -135,10 +135,14 @@ export class ServerManager extends EventEmitter {
     this.setState('starting');
   }
 
+  getOwnedPid(): number | null {
+    return this.ownedPid;
+  }
+
   killSync(): void {
     if (this.ownedPid !== null) {
       try {
-        process.kill(this.ownedPid, 'SIGTERM');
+        process.kill(this.ownedPid, 'SIGKILL');
       } catch {
         // already dead
       }
