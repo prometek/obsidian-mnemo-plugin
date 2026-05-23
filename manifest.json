@@ -1,9 +1,9 @@
 {
-  "id": "obsidian-mnemo",
+  "id": "mnemo",
   "name": "Mnemo",
   "version": "0.1.0",
   "minAppVersion": "1.4.0",
-  "description": "Starts and manages the obsidian-mnemo MCP server for AI-powered vault access.",
+  "description": "AI-powered vault access via the Model Context Protocol — auto-installs and manages the mnemo MCP server.",
   "author": "Guillaume Fassot",
   "authorUrl": "https://github.com/prometek",
   "isDesktopOnly": true
